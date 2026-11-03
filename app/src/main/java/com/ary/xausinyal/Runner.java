@@ -27,6 +27,9 @@ public class Runner {
     static long dollarFetchedAt;
     static Analyzer.OrderBook cacheOb;
     static long obFetchedAt;
+    public static volatile Analyzer.Result lastResult;
+    public static volatile long lastResultAt;
+    public static volatile String lastError = "";
 
     public static SharedPreferences prefs(Context c) {
         return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -88,6 +91,9 @@ public class Runner {
         }
 
         Analyzer.Result r = Analyzer.analyze(x5, cacheDollar, invert, useOb ? cacheOb : null);
+        lastResult = r;
+        lastResultAt = now;
+        lastError = err.toString();
         StringBuilder out = new StringBuilder();
         out.append("Update: ").append(wib(now)).append(" WIB\n").append(r.summary());
         if (err.length() > 0) out.append("⚠ ").append(err);
