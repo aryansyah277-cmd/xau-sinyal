@@ -64,7 +64,7 @@ public class SignalService extends Service {
         PendingIntent pi = PendingIntent.getActivity(this, 1, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, Runner.CH_SERVICE) : new Notification.Builder(this);
         return b.setSmallIcon(R.drawable.ic_notif)
-                .setContentTitle("XAU Sinyal aktif")
+                .setContentTitle("XAU Sinyal by Aryansyah aktif")
                 .setContentText(text)
                 .setOngoing(true)
                 .setContentIntent(pi)

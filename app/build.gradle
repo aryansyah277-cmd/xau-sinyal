@@ -7,15 +7,16 @@ android {
         applicationId 'com.ary.xausinyal'
         minSdk 26
         targetSdk 34
-        versionCode 2
-        versionName '1.1'
+        versionCode 3
+        versionName '1.2'
     }
     signingConfigs {
         tetap {
-            storeFile file('xausinyal.keystore')
-            storePassword 'xausinyal123'
+            // kunci disimpan di GitHub Secret (KEYSTORE_B64 & KEYSTORE_PASS), tidak ada di repository
+            storeFile file(System.getenv('KS_FILE') ?: 'release.keystore')
+            storePassword System.getenv('KS_PASS') ?: ''
             keyAlias 'xausinyal'
-            keyPassword 'xausinyal123'
+            keyPassword System.getenv('KS_PASS') ?: ''
         }
     }
     buildTypes {

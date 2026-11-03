@@ -31,7 +31,9 @@ import org.json.JSONObject;
 
 public class MainActivity extends Activity {
     static final int BG = 0xFF0F1419, CARD = 0xFF1A2129, GOLD = 0xFFE8B84A, TXT = 0xFFE6E6E6, MUTED = 0xFF8A949E;
-    EditText apiKey, dollar, minScore, offset, claudeKey, chatInput;
+    EditText apiKey, dollar, minScore, offset;
+    LinearLayout home, settings;
+    Button tabHome, tabSet;
     LinearLayout chatList;
     ScrollView chatScroll;
     Button sendBtn;
@@ -56,60 +58,79 @@ public class MainActivity extends Activity {
         root.setPadding(pad, pad, pad, pad * 2);
         sv.addView(root);
 
-        TextView title = text("XAU Sinyal by Ary", 24, GOLD, true);
+        TextView title = text("XAU Sinyal by Aryansyah", 24, GOLD, true);
         root.addView(title);
-        root.addView(text("Notifikasi entry XAUUSD: Support/Resisten • Korelasi Dolar • Order Book", 13, MUTED, false));
+        TextView tag = text("Trade What You See, Not What You Hope", 14, TXT, false);
+        tag.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.ITALIC));
+        root.addView(tag);
+        root.addView(text("Support/Resisten • Korelasi Dolar • Order Book", 12, MUTED, false));
 
-        // ---- kartu chat
-        LinearLayout cc = card(root);
-        cc.addView(text("Chat", 15, GOLD, true));
+        // ---- tab
+        LinearLayout tabs = new LinearLayout(this);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        tabHome = button("Beranda", GOLD);
+        tabSet = button("Pengaturan", 0xFF2D3A46);
+        LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        tl.setMargins(0, dp(12), dp(4), 0);
+        LinearLayout.LayoutParams tr = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        tr.setMargins(dp(4), dp(12), 0, 0);
+        tabs.addView(tabHome, tl);
+        tabs.addView(tabSet, tr);
+        root.addView(tabs);
+        home = new LinearLayout(this);
+        home.setOrientation(LinearLayout.VERTICAL);
+        settings = new LinearLayout(this);
+        settings.setOrientation(LinearLayout.VERTICAL);
+        root.addView(home);
+        root.addView(settings);
+        tabHome.setOnClickListener(v -> showTab(true));
+        tabSet.setOnClickListener(v -> showTab(false));
+
+        // ================= BERANDA =================
+        LinearLayout cc = card(home);
+        cc.addView(text("Cek Pasar", 15, GOLD, true));
         chatScroll = new ScrollView(this);
         chatList = new LinearLayout(this);
         chatList.setOrientation(LinearLayout.VERTICAL);
         chatScroll.addView(chatList);
-        cc.addView(chatScroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(320)));
+        cc.addView(chatScroll, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(340)));
         LinearLayout quick = new LinearLayout(this);
         quick.setOrientation(LinearLayout.HORIZONTAL);
-        String[] qs = {"cek sekarang", "bantuan"};
-        for (String q : qs) {
-            Button qb = button(q, 0xFF2D3A46);
-            qb.setOnClickListener(v -> send(q));
-            LinearLayout.LayoutParams ql = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
-            ql.setMargins(dp(2), dp(8), dp(2), 0);
-            quick.addView(qb, ql);
-        }
-        cc.addView(quick);
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        chatInput = edit("", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        chatInput.setHint("Ketik perintah, mis. posisi buy 3898 x4");
-        row.addView(chatInput, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        sendBtn = button("Kirim", GOLD);
+        sendBtn = button("Cek sekarang", GOLD);
         sendBtn.setTextColor(Color.BLACK);
-        sendBtn.setOnClickListener(v -> send(chatInput.getText().toString()));
-        row.addView(sendBtn, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        cc.addView(row);
+        sendBtn.setOnClickListener(v -> send("Cek sekarang"));
+        Button clear = button("Hapus", 0xFF2D3A46);
+        clear.setOnClickListener(v -> clearChat());
+        LinearLayout.LayoutParams q1 = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 2);
+        q1.setMargins(0, dp(8), dp(4), 0);
+        LinearLayout.LayoutParams q2 = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        q2.setMargins(dp(4), dp(8), 0, 0);
+        quick.addView(sendBtn, q1);
+        quick.addView(clear, q2);
+        cc.addView(quick);
         loadChat();
 
-        // ---- kartu ringkasan
-        LinearLayout c1 = card(root);
-        c1.addView(text("Analisa terakhir", 15, GOLD, true));
-        summary = text(p.getString("last_summary", "Belum ada analisa."), 14, TXT, false);
-        summary.setTypeface(Typeface.MONOSPACE);
-        c1.addView(summary);
-        Button now = button("ANALISA SEKARANG", 0xFF2D3A46);
-        now.setOnClickListener(v -> analyzeNow());
-        c1.addView(now);
-
-        // ---- start / stop
         startStop = button("", GOLD);
         startStop.setTextColor(Color.BLACK);
         startStop.setOnClickListener(v -> toggle());
-        root.addView(startStop, lp());
+        home.addView(startStop, lp());
 
-        // ---- pengaturan
-        LinearLayout c2 = card(root);
+        LinearLayout c1 = card(home);
+        c1.addView(text("Data pantauan terakhir", 15, GOLD, true));
+        summary = text(p.getString("last_summary", "Belum ada analisa."), 13, TXT, false);
+        summary.setTypeface(Typeface.MONOSPACE);
+        c1.addView(summary);
+
+        LinearLayout c3 = card(home);
+        c3.addView(text("Riwayat notifikasi", 15, GOLD, true));
+        history = text("", 13, TXT, false);
+        c3.addView(history);
+
+        home.addView(text("Catatan: sinyal adalah hasil aturan analisa otomatis, bukan jaminan profit dan bukan saran keuangan. "
+                + "Selalu pasang SL, pakai lot kecil, dan cek ulang di chart sebelum entry.", 12, MUTED, false));
+
+        // ================= PENGATURAN =================
+        LinearLayout c2 = card(settings);
         c2.addView(text("Pengaturan", 15, GOLD, true));
         c2.addView(label("API key Twelve Data (gratis di twelvedata.com)"));
         apiKey = secret(p.getString("apikey", ""));
@@ -123,28 +144,19 @@ public class MainActivity extends Activity {
         c2.addView(label("Selisih harga broker vs data (mis. 0.5 atau -0.3)"));
         offset = edit(p.getString("offset", "0"), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
         c2.addView(offset);
-        c2.addView(label("API key Claude (opsional, berbayar: untuk tanya bebas di chat)"));
-        claudeKey = secret(p.getString("claudekey", ""));
-        c2.addView(claudeKey);
         useOb = check("Pakai data order book FastBull", p.getBoolean("useob", true));
         c2.addView(useOb);
         siap = check("Kirim notifikasi \"SIAP-SIAP\" (harga mendekati level)", p.getBoolean("siap", true));
         c2.addView(siap);
-        Button save = button("SIMPAN PENGATURAN", 0xFF2D3A46);
+        Button save = button("SIMPAN PENGATURAN", GOLD);
+        save.setTextColor(Color.BLACK);
         save.setOnClickListener(v -> { save(); Toast.makeText(this, "Tersimpan", Toast.LENGTH_SHORT).show(); });
-        c2.addView(save);
+        c2.addView(save, lp());
         Button batt = button("IZINKAN JALAN DI LATAR BELAKANG", 0xFF2D3A46);
         batt.setOnClickListener(v -> askBattery());
-        c2.addView(batt);
-
-        // ---- riwayat
-        LinearLayout c3 = card(root);
-        c3.addView(text("Riwayat notifikasi", 15, GOLD, true));
-        history = text("", 13, TXT, false);
-        c3.addView(history);
-
-        root.addView(text("Catatan: sinyal adalah hasil aturan analisa otomatis, bukan jaminan profit dan bukan saran keuangan. "
-                + "Selalu pasang SL, pakai lot kecil, dan cek ulang di chart sebelum entry.", 12, MUTED, false));
+        c2.addView(batt, lp());
+        settings.addView(text("Versi " + versionName(), 12, MUTED, false));
+        showTab(true);
 
         setContentView(sv);
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
@@ -168,7 +180,6 @@ public class MainActivity extends Activity {
                 .putString("dollar", dollar.getText().toString().trim().isEmpty() ? "EUR/USD" : dollar.getText().toString().trim())
                 .putString("minscore", minScore.getText().toString().trim())
                 .putString("offset", offset.getText().toString().trim())
-                .putString("claudekey", claudeKey.getText().toString().trim())
                 .putBoolean("useob", useOb.isChecked())
                 .putBoolean("siap", siap.isChecked())
                 .apply();
@@ -255,7 +266,6 @@ public class MainActivity extends Activity {
         String t = msg.trim();
         if (t.isEmpty()) return;
         save();
-        chatInput.setText("");
         addMsg(t, true, true);
         sendBtn.setEnabled(false);
         TextView wait = bubble("Sedang menganalisa…", false);
@@ -291,7 +301,7 @@ public class MainActivity extends Activity {
     void loadChat() {
         try {
             JSONArray a = new JSONArray(Runner.prefs(this).getString("chat", "[]"));
-            if (a.length() == 0) addMsg("Halo Pak Ari 👋 Ketik \"cek sekarang\" untuk analisa, atau \"posisi buy 3898 x4\" untuk cek posisi.", false, false);
+            if (a.length() == 0) addMsg(GREETING, false, false);
             for (int i = 0; i < a.length(); i++) {
                 JSONObject o = a.getJSONObject(i);
                 addMsg(o.getString("t"), o.getBoolean("me"), false);
@@ -312,6 +322,35 @@ public class MainActivity extends Activity {
         l.setMargins(me ? dp(40) : 0, dp(4), me ? 0 : dp(40), dp(4));
         v.setLayoutParams(l);
         return v;
+    }
+
+    static final String GREETING = "Halo Pak Ari 👋\nTekan \"Cek sekarang\" untuk melihat analisa harga emas terbaru: kondisi pasar, arah dolar, dan saran entry lengkap dengan SL & TP.";
+
+    void clearChat() {
+        Runner.prefs(this).edit().remove("chat").apply();
+        chatList.removeAllViews();
+        loadChat();
+        Toast.makeText(this, "Riwayat cek dihapus", Toast.LENGTH_SHORT).show();
+    }
+
+    void showTab(boolean h) {
+        home.setVisibility(h ? View.VISIBLE : View.GONE);
+        settings.setVisibility(h ? View.GONE : View.VISIBLE);
+        tint(tabHome, h);
+        tint(tabSet, !h);
+        if (h && apiKey != null) save();
+    }
+
+    void tint(Button b, boolean active) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(active ? GOLD : 0xFF2D3A46);
+        g.setCornerRadius(dp(10));
+        b.setBackground(g);
+        b.setTextColor(active ? Color.BLACK : TXT);
+    }
+
+    String versionName() {
+        try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return "?"; }
     }
 
     void scrollChat() { chatScroll.post(() -> chatScroll.fullScroll(View.FOCUS_DOWN)); }

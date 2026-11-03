@@ -16,7 +16,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+      - name: Siapkan kunci tanda tangan
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::Secret KEYSTORE_B64 / KEYSTORE_PASS belum diisi di Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "KS_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
       - name: Build APK
+        env:
+          KS_PASS: ${{ secrets.KEYSTORE_PASS }}
         run: gradle assembleRelease --no-daemon --stacktrace
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk XAU-Sinyal.apk
@@ -27,6 +39,6 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.${{ github.run_number }}
-          name: XAU Sinyal v1.1.${{ github.run_number }}
+          tag_name: v1.2.${{ github.run_number }}
+          name: XAU Sinyal v1.2.${{ github.run_number }}
           files: XAU-Sinyal.apk
