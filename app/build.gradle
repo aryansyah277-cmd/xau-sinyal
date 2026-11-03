@@ -1,0 +1,29 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.ary.xausinyal'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.ary.xausinyal'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+    signingConfigs {
+        tetap {
+            storeFile file('xausinyal.keystore')
+            storePassword 'xausinyal123'
+            keyAlias 'xausinyal'
+            keyPassword 'xausinyal123'
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.tetap }
+        release { minifyEnabled false; signingConfig signingConfigs.tetap }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
