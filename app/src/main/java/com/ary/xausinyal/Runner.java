@@ -9,6 +9,10 @@ import android.content.SharedPreferences;
 import android.os.Build;
 
 import com.ary.xausinyal.engine.Analyzer;
+import com.ary.xausinyal.engine.StructureAnalyzer;
+
+import java.util.ArrayList;
+import java.util.Calendar;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -27,7 +31,7 @@ public class Runner {
     static long dollarFetchedAt;
     static Analyzer.OrderBook cacheOb;
     static long obFetchedAt;
-    public static volatile Analyzer.Result lastResult;
+    public static volatile StructureAnalyzer.Result lastResult;
     public static volatile long lastResultAt;
     public static volatile String lastError = "";
 
@@ -62,7 +66,7 @@ public class Runner {
         boolean invert = dSym.toUpperCase(Locale.US).contains("EUR") || dSym.toUpperCase(Locale.US).contains("GBP");
         double offset = parse(p.getString("offset", "0"), 0);
         int minScore = (int) parse(p.getString("minscore", "70"), 70);
-        boolean useOb = p.getBoolean("useob", true);
+        boolean useOb = p.getBoolean("useob2", false);
         boolean siap = p.getBoolean("siap", true);
         long now = System.currentTimeMillis() / 1000;
         StringBuilder err = new StringBuilder();
@@ -70,7 +74,7 @@ public class Runner {
 
         List<Analyzer.Candle> x5;
         try {
-            x5 = DataClient.candles(key, "XAU/USD", "5min", 600, 300, offset);
+            x5 = DataClient.candles(key, "XAU/USD", "5min", 2000, 300, offset);
         } catch (Exception e) {
             String m = "Gagal ambil harga emas: " + e.getMessage();
             p.edit().putString("last_summary", wib(now) + " WIB\n" + m).apply();
@@ -79,7 +83,7 @@ public class Runner {
         if (forceAll || cacheDollar == null || now - dollarFetchedAt >= 840) {
             try {
                 calls++;
-                cacheDollar = DataClient.candles(key, dSym, "15min", 120, 900, 0);
+                cacheDollar = DataClient.candles(key, dSym, "15min", 200, 900, 0);
                 dollarFetchedAt = now;
             } catch (Exception e) { err.append("Dolar: ").append(e.getMessage()).append("\n"); }
         }
@@ -90,16 +94,18 @@ public class Runner {
             } catch (Exception e) { err.append("Order book: ").append(e.getMessage()).append("\n"); }
         }
 
-        Analyzer.Result r = Analyzer.analyze(x5, cacheDollar, invert, useOb ? cacheOb : null);
+        StructureAnalyzer.Result r = StructureAnalyzer.analyze(x5, cacheDollar, invert, newsTimes(p, now));
         lastResult = r;
         lastResultAt = now;
         lastError = err.toString();
         StringBuilder out = new StringBuilder();
         out.append("Update: ").append(wib(now)).append(" WIB\n").append(r.summary());
+        if (useOb && cacheOb != null)
+            out.append(String.format(Locale.US, "Order book (info saja): retail %.0f%% long\n", cacheOb.longPct));
         if (err.length() > 0) out.append("⚠ ").append(err);
 
         boolean any = false;
-        for (Analyzer.Signal s : r.signals) {
+        for (StructureAnalyzer.Signal s : r.signals) {
             boolean isSiap = "SIAP".equals(s.kind);
             if (isSiap && !siap) continue;
             if (!isSiap && s.score < minScore) {
@@ -110,7 +116,7 @@ public class Runner {
             out.append("\n\n▶ ").append(s.title()).append("\n").append(s.body());
             if (notify) maybeNotify(ctx, p, s, now);
         }
-        if (!any) out.append("\n\nBelum ada setup entry. Tunggu harga di ujung support/resisten.");
+        if (!any) out.append(r.newsBlock ? "\n\n⛔ Jeda berita: jangan entry dulu." : "\n\nBelum ada setup entry. Tunggu harga menguji level kunci searah struktur.");
         countCall(p, calls);
         out.append("\n\nKuota Twelve Data: ").append(p.getInt("calls_today", 0)).append(" / 800 panggilan hari ini");
         String summary = out.toString();
@@ -124,9 +130,9 @@ public class Runner {
         p.edit().putString("calls_day", day).putInt("calls_today", c + n).apply();
     }
 
-    static void maybeNotify(Context ctx, SharedPreferences p, Analyzer.Signal s, long now) {
+    static void maybeNotify(Context ctx, SharedPreferences p, StructureAnalyzer.Signal s, long now) {
         String ck = "cool_" + s.side + "_" + s.kind;
-        long cool = "SIAP".equals(s.kind) ? 3600 : 1800;
+        long cool = "SIAP".equals(s.kind) ? 3600 : 2700;
         if (now - p.getLong(ck, 0) < cool) return;
         p.edit().putLong(ck, now).apply();
 
@@ -152,6 +158,42 @@ public class Runner {
                 .setDefaults(android.app.Notification.DEFAULT_ALL);
         NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
         try { nm.notify((int) (now % 100000), b.build()); } catch (SecurityException ignored) { }
+    }
+
+    /**
+     * Jadwal berita besar: NFP otomatis (Jumat pertama tiap bulan, 08:30 waktu New York)
+     * + jam berita yang diisi pengguna untuk hari ini (WIB), mis. "20:30, 02:00".
+     */
+    public static long[] newsTimes(SharedPreferences p, long now) {
+        List<Long> out = new ArrayList<>();
+        Calendar ny = Calendar.getInstance(TimeZone.getTimeZone("America/New_York"));
+        ny.setTimeInMillis(now * 1000);
+        for (int m = -1; m <= 0; m++) {
+            Calendar c = (Calendar) ny.clone();
+            c.add(Calendar.MONTH, m);
+            c.set(Calendar.DAY_OF_MONTH, 1);
+            while (c.get(Calendar.DAY_OF_WEEK) != Calendar.FRIDAY) c.add(Calendar.DAY_OF_MONTH, 1);
+            c.set(Calendar.HOUR_OF_DAY, 8); c.set(Calendar.MINUTE, 30); c.set(Calendar.SECOND, 0); c.set(Calendar.MILLISECOND, 0);
+            out.add(c.getTimeInMillis() / 1000);
+        }
+        String s = p.getString("news", "").trim();
+        if (!s.isEmpty()) {
+            Calendar j = Calendar.getInstance(TimeZone.getTimeZone("Asia/Jakarta"));
+            for (String part : s.split("[,;\\s]+")) {
+                try {
+                    String[] hm = part.trim().replace('.', ':').split(":");
+                    Calendar c = (Calendar) j.clone();
+                    c.setTimeInMillis(now * 1000);
+                    c.set(Calendar.HOUR_OF_DAY, Integer.parseInt(hm[0]));
+                    c.set(Calendar.MINUTE, hm.length > 1 ? Integer.parseInt(hm[1]) : 0);
+                    c.set(Calendar.SECOND, 0); c.set(Calendar.MILLISECOND, 0);
+                    out.add(c.getTimeInMillis() / 1000);
+                } catch (Exception ignored) { }
+            }
+        }
+        long[] r = new long[out.size()];
+        for (int i = 0; i < r.length; i++) r[i] = out.get(i);
+        return r;
     }
 
     static double parse(String s, double d) {

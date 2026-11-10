@@ -152,7 +152,7 @@ public class Analyzer {
         return r;
     }
 
-    static double ema(List<Candle> k, int n, int endExclusiveOffset) {
+    public static double ema(List<Candle> k, int n, int endExclusiveOffset) {
         int end = k.size() - endExclusiveOffset;
         double a = 2.0 / (n + 1), e = k.get(Math.max(0, end - n * 3)).c;
         for (int i = Math.max(0, end - n * 3); i < end; i++) e = a * k.get(i).c + (1 - a) * e;
