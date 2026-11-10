@@ -1,0 +1,14 @@
+name: Fetch data
+on:
+  push:
+    branches: [data]
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/fetch_duka.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: market-data
+          path: "*_1m.csv"
