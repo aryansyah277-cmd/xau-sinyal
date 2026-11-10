@@ -31,7 +31,7 @@ import org.json.JSONObject;
 
 public class MainActivity extends Activity {
     static final int BG = 0xFF0F1419, CARD = 0xFF1A2129, GOLD = 0xFFE8B84A, TXT = 0xFFE6E6E6, MUTED = 0xFF8A949E;
-    EditText apiKey, dollar, minScore, offset;
+    EditText apiKey, dollar, minScore, offset, news;
     LinearLayout home, settings;
     Button tabHome, tabSet;
     LinearLayout chatList;
@@ -63,7 +63,7 @@ public class MainActivity extends Activity {
         TextView tag = text("Trade What You See, Not What You Hope", 14, TXT, false);
         tag.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.ITALIC));
         root.addView(tag);
-        root.addView(text("Support/Resisten • Korelasi Dolar • Order Book", 12, MUTED, false));
+        root.addView(text("Struktur pasar 80% • Fundamental 20%", 12, MUTED, false));
 
         // ---- tab
         LinearLayout tabs = new LinearLayout(this);
@@ -144,7 +144,11 @@ public class MainActivity extends Activity {
         c2.addView(label("Selisih harga broker vs data (mis. 0.5 atau -0.3)"));
         offset = edit(p.getString("offset", "0"), InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
         c2.addView(offset);
-        useOb = check("Pakai data order book FastBull", p.getBoolean("useob", true));
+        c2.addView(label("Jam berita besar hari ini (WIB), mis. 20:30. NFP sudah otomatis"));
+        news = edit(p.getString("news", ""), InputType.TYPE_CLASS_TEXT);
+        news.setHint("contoh: 20:30, 02:00");
+        c2.addView(news);
+        useOb = check("Tampilkan info order book FastBull (tidak dihitung di skor)", p.getBoolean("useob2", false));
         c2.addView(useOb);
         siap = check("Kirim notifikasi \"SIAP-SIAP\" (harga mendekati level)", p.getBoolean("siap", true));
         c2.addView(siap);
@@ -180,7 +184,8 @@ public class MainActivity extends Activity {
                 .putString("dollar", dollar.getText().toString().trim().isEmpty() ? "EUR/USD" : dollar.getText().toString().trim())
                 .putString("minscore", minScore.getText().toString().trim())
                 .putString("offset", offset.getText().toString().trim())
-                .putBoolean("useob", useOb.isChecked())
+                .putString("news", news.getText().toString().trim())
+                .putBoolean("useob2", useOb.isChecked())
                 .putBoolean("siap", siap.isChecked())
                 .apply();
     }
@@ -324,7 +329,7 @@ public class MainActivity extends Activity {
         return v;
     }
 
-    static final String GREETING = "Halo Pak Ari 👋\nTekan \"Cek sekarang\" untuk melihat analisa harga emas terbaru: kondisi pasar, arah dolar, dan saran entry lengkap dengan SL & TP.";
+    static final String GREETING = "Halo Pak Ari 👋\nTekan \"Cek sekarang\" untuk analisa emas terbaru: struktur pasar H4/H1, level kunci, dan saran entry lengkap dengan SL & TP.";
 
     void clearChat() {
         Runner.prefs(this).edit().remove("chat").apply();
