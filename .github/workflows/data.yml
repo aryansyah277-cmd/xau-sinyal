@@ -2,13 +2,20 @@ name: Fetch data
 on:
   push:
     branches: [data]
+    paths: ['tools/**', '.github/workflows/data.yml']
+permissions:
+  contents: write
 jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: python3 tools/fetch_duka.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: market-data
-          path: "*_1m.csv"
+      - name: Simpan data ke cabang
+        run: |
+          mkdir -p backtest-data && gzip -c XAUUSD_1m.csv > backtest-data/XAUUSD_1m.csv.gz && gzip -c EURUSD_1m.csv > backtest-data/EURUSD_1m.csv.gz
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add backtest-data
+          git commit -m "Data backtest"
+          git push
